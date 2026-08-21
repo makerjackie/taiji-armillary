@@ -16,6 +16,18 @@ body,
   background: #000;
 }
 
+#vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(0, 0, 0, 0) 42%,
+    rgba(0, 0, 0, 0.72) 100%
+  );
+}
+
 body {
   font-family: "Noto Serif SC", "Songti SC", "STSong", serif;
   color: #d7c4a3;
@@ -32,6 +44,14 @@ canvas {
   pointer-events: none;
   z-index: 2;
   text-shadow: 0 2px 16px #000;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 1.2s ease 4.2s, transform 1.2s ease 4.2s;
+}
+
+#hud.is-ready {
+  opacity: 1;
+  transform: none;
 }
 
 .title {

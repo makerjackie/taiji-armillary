@@ -6,7 +6,8 @@ import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
-import { createArtifact, createStarfield } from "./artifact";
+import { createArtifact } from "./artifact";
+import { createStarfield, easeInOutCubic, twinkleStars } from "./fx";
 
 async function waitForFonts() {
   try {
@@ -17,92 +18,91 @@ async function waitForFonts() {
   }
 }
 
-function setupLights(scene: THREE.Scene) {
-  scene.add(new THREE.AmbientLight(0x3a2a1c, 0.45));
-
-  const key = new THREE.DirectionalLight(0xffe2b8, 2.4);
-  key.position.set(8, 14, 10);
-  scene.add(key);
-
-  const rim = new THREE.DirectionalLight(0x88aacc, 0.85);
-  rim.position.set(-12, 4, -8);
-  scene.add(rim);
-
-  const fill = new THREE.DirectionalLight(0xffaa66, 0.55);
-  fill.position.set(0, -6, 8);
-  scene.add(fill);
-
-  const spark = new THREE.PointLight(0xffcc88, 8, 18, 2);
-  spark.position.set(2.5, 3.2, 3.5);
-  scene.add(spark);
-
-  return spark;
-}
-
 async function boot() {
   await waitForFonts();
 
   const renderer = new THREE.WebGLRenderer({
     antialias: true,
-    alpha: false,
     powerPreference: "high-performance",
   });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setClearColor(0x000000, 1);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.02;
+  renderer.toneMappingExposure = 1.08;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   document.getElementById("app")!.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
-  scene.fog = new THREE.FogExp2(0x000000, 0.004);
+  scene.fog = new THREE.FogExp2(0x000000, 0.003);
 
   const camera = new THREE.PerspectiveCamera(
-    36,
+    34,
     window.innerWidth / window.innerHeight,
     0.1,
-    200,
+    220,
   );
-  camera.position.set(14.5, 10.2, 16.2);
+  const camFrom = new THREE.Vector3(0.8, 36, 2.2);
+  const camTo = new THREE.Vector3(13.6, 8.8, 15.4);
+  camera.position.copy(camFrom);
 
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
-  controls.dampingFactor = 0.06;
-  controls.minDistance = 9;
-  controls.maxDistance = 28;
-  controls.target.set(0, 0.1, 0);
-  controls.autoRotate = true;
+  controls.dampingFactor = 0.055;
+  controls.minDistance = 8;
+  controls.maxDistance = 30;
+  controls.target.set(0, 0.15, 0);
+  controls.autoRotate = false;
   controls.autoRotateSpeed = 0.4;
+  controls.enabled = false;
 
   const pmrem = new THREE.PMREMGenerator(renderer);
   const env = new RoomEnvironment();
   scene.environment = pmrem.fromScene(env, 0.04).texture;
   env.dispose();
 
-  const spark = setupLights(scene);
-  scene.add(createStarfield());
+  scene.add(new THREE.AmbientLight(0x2c2118, 0.42));
+  const key = new THREE.DirectionalLight(0xffe6c4, 2.35);
+  key.position.set(9, 15, 11);
+  scene.add(key);
+  const rim = new THREE.DirectionalLight(0x7f9eb8, 0.7);
+  rim.position.set(-12, 4, -8);
+  scene.add(rim);
+  const fill = new THREE.DirectionalLight(0xc48a55, 0.35);
+  fill.position.set(2, -6, 7);
+  scene.add(fill);
 
-  const { root, spinning } = createArtifact();
-  scene.add(root);
+  const stars = createStarfield();
+  scene.add(stars);
+
+  const artifact = createArtifact();
+  scene.add(artifact.root);
 
   const composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
-  const bloom = new UnrealBloomPass(
-    new THREE.Vector2(window.innerWidth, window.innerHeight),
-    0.16,
-    0.4,
-    0.88,
+  composer.addPass(
+    new UnrealBloomPass(
+      new THREE.Vector2(window.innerWidth, window.innerHeight),
+      0.18,
+      0.32,
+      0.86,
+    ),
   );
-  composer.addPass(bloom);
   composer.addPass(new OutputPass());
 
+  const pointer = new THREE.Vector2(0, 0);
+  window.addEventListener("pointermove", (e) => {
+    pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
+    pointer.y = (e.clientY / window.innerHeight) * 2 - 1;
+  });
+
   let paused = false;
+  let introDone = false;
   window.addEventListener("keydown", (e) => {
     if (e.code === "Space") {
       e.preventDefault();
       paused = !paused;
-      controls.autoRotate = !paused;
+      if (introDone) controls.autoRotate = !paused;
     }
   });
 
@@ -116,27 +116,45 @@ async function boot() {
   const loading = document.getElementById("loading")!;
   loading.classList.add("is-done");
   setTimeout(() => loading.remove(), 900);
+  document.getElementById("hud")?.classList.add("is-ready");
 
   const clock = new THREE.Clock();
+  const introDur = 5.6;
 
   function frame() {
     requestAnimationFrame(frame);
     const dt = Math.min(clock.getDelta(), 0.05);
     const t = clock.elapsedTime;
-    controls.update();
 
-    spark.position.set(
-      Math.cos(t * 0.35) * 4.5,
-      3.2 + Math.sin(t * 0.5) * 0.8,
-      Math.sin(t * 0.35) * 4.5,
-    );
-
-    if (!paused) {
-      for (const part of spinning) {
-        part.object.rotateOnAxis(part.axis, part.speed * dt);
+    let intro = 1;
+    if (!introDone) {
+      intro = Math.min(1, t / introDur);
+      camera.position.lerpVectors(camFrom, camTo, easeInOutCubic(intro));
+      camera.lookAt(0, 0.2, 0);
+      if (intro >= 1) {
+        introDone = true;
+        controls.enabled = true;
+        controls.autoRotate = !paused;
+        camera.position.copy(camTo);
       }
+    } else {
+      artifact.root.rotation.x = THREE.MathUtils.damp(
+        artifact.root.rotation.x,
+        pointer.y * 0.08,
+        3.2,
+        dt,
+      );
+      artifact.root.rotation.z = THREE.MathUtils.damp(
+        artifact.root.rotation.z,
+        -pointer.x * 0.07,
+        3.2,
+        dt,
+      );
     }
 
+    artifact.update(t, dt, intro, paused);
+    twinkleStars(stars, t);
+    controls.update();
     composer.render();
   }
 

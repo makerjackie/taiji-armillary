@@ -221,7 +221,12 @@ export function createPlateMaps(spec: PlateSpec, size = 1024) {
   bctx.arc(cx, cy, outerPx - 2, 0, Math.PI * 2);
   bctx.stroke();
 
-  const paintGlyphs = (target: CanvasRenderingContext2D, forBump: boolean) => {
+  const paintGlyphs = (
+    target: CanvasRenderingContext2D,
+    forBump: boolean,
+    ink?: string,
+  ) => {
+    const fill = ink ?? (forBump ? "#2a2a2a" : "#2c160c");
     target.save();
     if (spec.kind === "trigram") {
       const count = 8;
@@ -232,7 +237,7 @@ export function createPlateMaps(spec: PlateSpec, size = 1024) {
         target.rotate(i * step);
         target.translate(0, -midPx);
         target.rotate(Math.PI);
-        target.fillStyle = forBump ? "#2a2a2a" : "#2c160c";
+        target.fillStyle = fill;
         drawTrigram(target, 0, 0, ringW * 0.72, HOU_TIAN[i].lines);
         target.restore();
       }
@@ -245,14 +250,14 @@ export function createPlateMaps(spec: PlateSpec, size = 1024) {
         target.rotate(i * step);
         target.translate(0, -midPx);
         target.rotate(Math.PI);
-        target.fillStyle = forBump ? "#2a2a2a" : "#2c160c";
+        target.fillStyle = fill;
         drawHexagram(target, 0, 0, ringW * 0.9, i);
         target.restore();
       }
     } else if (spec.kind === "ticks") {
       const count = 180;
       const step = (Math.PI * 2) / count;
-      target.strokeStyle = forBump ? "#333" : "#2c160c";
+      target.strokeStyle = ink ?? (forBump ? "#333" : "#2c160c");
       for (let i = 0; i < count; i++) {
         target.save();
         target.translate(cx, cy);
@@ -276,7 +281,7 @@ export function createPlateMaps(spec: PlateSpec, size = 1024) {
       target.font = `700 ${fontSize}px ${FONT}`;
       target.textAlign = "center";
       target.textBaseline = "middle";
-      target.fillStyle = forBump ? "#222" : "#2a150c";
+      target.fillStyle = fill;
 
       for (let i = 0; i < count; i++) {
         target.save();
@@ -316,12 +321,22 @@ export function createPlateMaps(spec: PlateSpec, size = 1024) {
   }
   paintGlyphs(bctx, true);
 
+  const emit = document.createElement("canvas");
+  emit.width = size;
+  emit.height = size;
+  const ectx = emit.getContext("2d")!;
+  ectx.fillStyle = "#000000";
+  ectx.fillRect(0, 0, size, size);
+  paintGlyphs(ectx, false, "#ffd199");
+
   const map = new THREE.CanvasTexture(canvas);
   const bumpMap = new THREE.CanvasTexture(bump);
+  const emissiveMap = new THREE.CanvasTexture(emit);
   map.colorSpace = THREE.SRGBColorSpace;
   map.anisotropy = 8;
   bumpMap.anisotropy = 8;
-  return { map, bumpMap };
+  emissiveMap.anisotropy = 8;
+  return { map, bumpMap, emissiveMap };
 }
 
 export function createTaijiTexture(size = 1024) {
@@ -452,7 +467,11 @@ export function createTorusInscription(size = [2048, 256] as const) {
 }
 
 export function createBronzeMaterial(
-  maps?: { map?: THREE.Texture; bumpMap?: THREE.Texture },
+  maps?: {
+    map?: THREE.Texture;
+    bumpMap?: THREE.Texture;
+    emissiveMap?: THREE.Texture;
+  },
   opts: { transparent?: boolean } = {},
 ) {
   const mat = new THREE.MeshPhysicalMaterial({
@@ -469,6 +488,11 @@ export function createBronzeMaterial(
   if (maps?.bumpMap) {
     mat.bumpMap = maps.bumpMap;
     mat.bumpScale = 0.05;
+  }
+  if (maps?.emissiveMap) {
+    mat.emissive = new THREE.Color(0x6a4824);
+    mat.emissiveMap = maps.emissiveMap;
+    mat.emissiveIntensity = 0.09;
   }
   return mat;
 }
