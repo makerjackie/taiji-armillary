@@ -4,6 +4,11 @@
 
 灵感来自古代浑仪与风水罗盘，几何和铭文都是程序生成，不依赖外部 3D 模型。
 
+## 版本
+
+- [`v1.0.0`](https://github.com/makerjackie/taiji-armillary/releases/tag/v1.0.0) 青铜器物造型
+- [`v2.0.0`](https://github.com/makerjackie/taiji-armillary/releases/tag/v2.0.0) 罗盘各层独立旋转
+
 ## 运行
 
 ```bash

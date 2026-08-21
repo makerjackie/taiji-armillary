@@ -297,9 +297,12 @@ export function createArtifact(): Artifact {
   const luopan = new THREE.Group();
   const taiji = createTaiji(1.14);
   luopan.add(taiji);
+  const plates: THREE.Group[] = [];
   PLATES.forEach((spec, i) => {
     const rise = 0.018 * (PLATES.length - i);
-    luopan.add(createPlate(spec, rise));
+    const plate = createPlate(spec, rise);
+    luopan.add(plate);
+    plates.push(plate);
   });
   root.add(luopan);
 
@@ -317,7 +320,7 @@ export function createArtifact(): Artifact {
     span?: number;
     maps?: boolean;
   }> = [
-    { r: 6.38, w: 0.28, h: 0.16, rot: [Math.PI / 2, 0, 0], speed: 0.045, maps: true },
+    { r: 6.38, w: 0.28, h: 0.16, rot: [Math.PI / 2, 0, 0], speed: 0.12, maps: true },
     { r: 6.72, w: 0.11, h: 0.09, rot: [0, 0, 0], speed: 0.09, maps: true },
     { r: 7.02, w: 0.1, h: 0.085, rot: [0.7, 0.16, 0.38], speed: -0.07, maps: true },
     { r: 7.3, w: 0.09, h: 0.08, rot: [1.05, -0.48, 0.3], speed: 0.06 },
@@ -338,12 +341,12 @@ export function createArtifact(): Artifact {
 
   const update = (_t: number, dt: number, intro: number, paused: boolean) => {
     luopan.scale.setScalar(Math.max(0.001, easeOutCubic(intro / 0.28)));
-    if (!paused) taiji.rotation.y += 0.18 * dt;
-
-    PLATES.forEach((spec, i) => {
-      const plate = luopan.children[i + 1];
-      if (!paused) plate.rotation.y += spec.speed * dt;
-    });
+    if (!paused) {
+      taiji.rotation.y += 0.46 * dt;
+      plates.forEach((plate, i) => {
+        plate.rotation.y += PLATES[i].speed * dt;
+      });
+    }
 
     mounts.forEach((m, i) => {
       const delay = i * 0.09;

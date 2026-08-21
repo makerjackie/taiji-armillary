@@ -36,16 +36,16 @@ export interface PlateSpec {
 }
 
 export const PLATES: PlateSpec[] = [
-  { name: "卦象", inner: 1.22, outer: 1.72, height: 0.1, kind: "trigram", speed: 0.12 },
-  { name: "卦名", inner: 1.74, outer: 2.18, height: 0.11, kind: "names", speed: -0.08 },
-  { name: "洛书", inner: 2.2, outer: 2.52, height: 0.09, kind: "luoshu", speed: 0.18 },
-  { name: "方位", inner: 2.54, outer: 2.92, height: 0.1, kind: "directions", speed: -0.05 },
-  { name: "二十四山", inner: 2.94, outer: 3.48, height: 0.13, kind: "mountains", speed: 0.07 },
-  { name: "节气", inner: 3.5, outer: 4.02, height: 0.11, kind: "terms", speed: -0.11 },
-  { name: "六十甲子", inner: 4.04, outer: 4.62, height: 0.12, kind: "jiazi", speed: 0.09 },
-  { name: "二十八宿", inner: 4.64, outer: 5.12, height: 0.1, kind: "mansions", speed: -0.06 },
-  { name: "周天", inner: 5.14, outer: 5.48, height: 0.08, kind: "ticks", speed: 0.03 },
-  { name: "六十四卦", inner: 5.5, outer: 6.05, height: 0.14, kind: "hexagrams", speed: -0.04 },
+  { name: "卦象", inner: 1.22, outer: 1.72, height: 0.1, kind: "trigram", speed: 0.42 },
+  { name: "卦名", inner: 1.74, outer: 2.18, height: 0.11, kind: "names", speed: -0.28 },
+  { name: "洛书", inner: 2.2, outer: 2.52, height: 0.09, kind: "luoshu", speed: 0.55 },
+  { name: "方位", inner: 2.54, outer: 2.92, height: 0.1, kind: "directions", speed: -0.22 },
+  { name: "二十四山", inner: 2.94, outer: 3.48, height: 0.13, kind: "mountains", speed: 0.31 },
+  { name: "节气", inner: 3.5, outer: 4.02, height: 0.11, kind: "terms", speed: -0.38 },
+  { name: "六十甲子", inner: 4.04, outer: 4.62, height: 0.12, kind: "jiazi", speed: 0.26 },
+  { name: "二十八宿", inner: 4.64, outer: 5.12, height: 0.1, kind: "mansions", speed: -0.24 },
+  { name: "周天", inner: 5.14, outer: 5.48, height: 0.08, kind: "ticks", speed: 0.16 },
+  { name: "六十四卦", inner: 5.5, outer: 6.05, height: 0.14, kind: "hexagrams", speed: -0.19 },
 ];
 
 function clampByte(v: number) {
