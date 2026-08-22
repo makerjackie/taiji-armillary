@@ -8,6 +8,7 @@ import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js"
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { createArtifact } from "./artifact";
 import { createStarfield, easeInOutCubic, twinkleStars } from "./fx";
+import { createStudio, type Studio } from "./studio";
 
 async function waitForFonts() {
   try {
@@ -78,6 +79,33 @@ async function boot() {
   const artifact = createArtifact();
   scene.add(artifact.root);
 
+  let studio: Studio = {
+    mode: "A",
+    spin: 1,
+    close: 0,
+    flip: 0,
+    rings: true,
+  };
+  let paused = false;
+  let introDone = false;
+
+  const skipIntro = () => {
+    if (introDone) return;
+    introDone = true;
+    camera.position.copy(camTo);
+    camera.lookAt(0, 0.2, 0);
+    controls.enabled = true;
+    controls.autoRotate = !paused;
+  };
+
+  createStudio((next, reason) => {
+    studio = next;
+    if (reason === "mode") {
+      skipIntro();
+      artifact.resetShow();
+    }
+  });
+
   const composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
   composer.addPass(
@@ -92,12 +120,11 @@ async function boot() {
 
   const pointer = new THREE.Vector2(0, 0);
   window.addEventListener("pointermove", (e) => {
+    if (e.target !== renderer.domElement) return;
     pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
     pointer.y = (e.clientY / window.innerHeight) * 2 - 1;
   });
 
-  let paused = false;
-  let introDone = false;
   window.addEventListener("keydown", (e) => {
     if (e.code === "Space") {
       e.preventDefault();
@@ -152,7 +179,7 @@ async function boot() {
       );
     }
 
-    artifact.update(t, dt, intro, paused);
+    artifact.update(t, dt, intro, paused, studio);
     twinkleStars(stars, t);
     controls.update();
     composer.render();

@@ -46,7 +46,7 @@ canvas {
   text-shadow: 0 2px 16px #000;
   opacity: 0;
   transform: translateY(8px);
-  transition: opacity 1.2s ease 4.2s, transform 1.2s ease 4.2s;
+  transition: opacity 0.8s ease 0.4s, transform 0.8s ease 0.4s;
 }
 
 #hud.is-ready {
@@ -98,4 +98,107 @@ canvas {
   to {
     transform: rotate(360deg);
   }
+}
+
+#studio {
+  position: fixed;
+  right: 22px;
+  top: 22px;
+  z-index: 4;
+  width: 228px;
+  padding: 16px 16px 14px;
+  border: 1px solid rgba(215, 196, 163, 0.18);
+  background: rgba(8, 6, 4, 0.72);
+  backdrop-filter: blur(12px);
+  color: #d7c4a3;
+}
+
+.studio-kicker {
+  font-size: 11px;
+  letter-spacing: 0.42em;
+  opacity: 0.5;
+  margin-bottom: 12px;
+}
+
+.studio-modes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.studio-modes button {
+  appearance: none;
+  text-align: left;
+  cursor: pointer;
+  border: 1px solid rgba(215, 196, 163, 0.16);
+  background: rgba(255, 255, 255, 0.03);
+  color: inherit;
+  font: inherit;
+  padding: 8px 9px 7px;
+  line-height: 1.2;
+}
+
+.studio-modes button b {
+  display: block;
+  font-size: 13px;
+  letter-spacing: 0.18em;
+}
+
+.studio-modes button span {
+  display: block;
+  font-size: 12px;
+  margin-top: 3px;
+}
+
+.studio-modes button small {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  opacity: 0.45;
+  margin-top: 2px;
+}
+
+.studio-modes button.is-on {
+  border-color: rgba(215, 196, 163, 0.7);
+  background: rgba(215, 196, 163, 0.12);
+}
+
+.studio-row {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  margin-bottom: 8px;
+}
+
+.studio-row input[type="range"] {
+  width: 100%;
+  accent-color: #c4a070;
+}
+
+.studio-row input:disabled {
+  opacity: 0.28;
+}
+
+.studio-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  margin: 10px 0 8px;
+}
+
+.studio-help {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  opacity: 0.4;
+}
+
+#studio.is-show .studio-row:nth-of-type(2),
+#studio.is-show .studio-row:nth-of-type(3) {
+  opacity: 0.35;
 }
