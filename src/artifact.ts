@@ -6,9 +6,9 @@ import {
   createTorusInscription,
   type PlateSpec,
 } from "./textures";
-import { easeInOutCubic, easeOutBack, easeOutCubic } from "./fx";
-import { createPetalCompass } from "./petal-compass";
+import { easeOutBack, easeOutCubic } from "./fx";
 import type { Studio } from "./studio";
+import type { LayerId } from "./data";
 
 interface Mount {
   mount: THREE.Group;
@@ -20,7 +20,9 @@ interface Mount {
 export interface Artifact {
   root: THREE.Group;
   update: (t: number, dt: number, intro: number, paused: boolean, studio: Studio) => void;
-  resetShow: () => void;
+  pick: (raycaster: THREE.Raycaster) => LayerId | null;
+  setFocus: (id: LayerId | null) => void;
+  layerRadius: (id: LayerId) => number;
 }
 
 function circlePath(radius: number, segments: number) {
@@ -224,7 +226,13 @@ function createPlate(spec: PlateSpec, y: number) {
 
   group.add(top, bottom, outerWall, innerWall, lipOuter, lipInner);
   group.position.y = y;
+  group.userData.kind = "plate";
+  group.userData.name = spec.name;
   group.userData.speed = spec.speed;
+  group.userData.baseY = y;
+  group.userData.inner = spec.inner;
+  group.userData.outer = spec.outer;
+  group.userData.height = spec.height;
   return group;
 }
 
@@ -284,7 +292,63 @@ function createTaiji(radius: number) {
 
   group.add(well, yang, yin, yangEye, yinEye, rim);
   group.position.y = 0.16;
+  group.userData.kind = "core";
   return group;
+}
+
+function createNeedle() {
+  const group = new THREE.Group();
+  const north = new THREE.MeshPhysicalMaterial({
+    color: 0x7a2c24,
+    metalness: 0.72,
+    roughness: 0.38,
+  });
+  const south = new THREE.MeshPhysicalMaterial({
+    color: 0x2a221c,
+    metalness: 0.78,
+    roughness: 0.42,
+  });
+  const n = new THREE.Mesh(new THREE.ConeGeometry(0.042, 1.02, 10), north);
+  n.rotation.x = Math.PI / 2;
+  n.position.z = 0.5;
+  const s = new THREE.Mesh(new THREE.ConeGeometry(0.042, 1.02, 10), south);
+  s.rotation.x = -Math.PI / 2;
+  s.position.z = -0.5;
+  const cap = new THREE.Mesh(new THREE.SphereGeometry(0.068, 12, 10), createInlay());
+  const hair = new THREE.Mesh(
+    new THREE.BoxGeometry(0.016, 0.012, 2.15),
+    new THREE.MeshPhysicalMaterial({
+      color: 0x6b241c,
+      metalness: 0.45,
+      roughness: 0.48,
+    }),
+  );
+  hair.position.y = -0.16;
+  group.add(hair, n, s, cap);
+  group.position.y = 0.38;
+  group.userData.kind = "core";
+  group.userData.ignorePick = false;
+  return group;
+}
+
+function layerFrom(obj: THREE.Object3D | null): LayerId | null {
+  let cur: THREE.Object3D | null = obj;
+  while (cur) {
+    if (cur.userData.kind === "plate") return cur.userData.index as number;
+    if (cur.userData.kind === "core") return "core";
+    cur = cur.parent;
+  }
+  return null;
+}
+
+function radiusToLayer(r: number): LayerId | null {
+  if (r < 1.22) return "core";
+  for (let i = 0; i < PLATES.length; i++) {
+    const spec = PLATES[i];
+    if (r >= spec.inner - 0.03 && r <= spec.outer + 0.03) return i;
+  }
+  if (r < 8.4) return "rings";
+  return null;
 }
 
 export function createArtifact(): Artifact {
@@ -295,18 +359,43 @@ export function createArtifact(): Artifact {
 
   const luopan = new THREE.Group();
   const taiji = createTaiji(1.14);
-  luopan.add(taiji);
+  const needle = createNeedle();
+  luopan.add(taiji, needle);
   const plates: THREE.Group[] = [];
   PLATES.forEach((spec, i) => {
     const rise = 0.018 * (PLATES.length - i);
     const plate = createPlate(spec, rise);
+    plate.userData.index = i;
     plates.push(plate);
     luopan.add(plate);
   });
   root.add(luopan);
 
-  const petalCompass = createPetalCompass();
-  root.add(petalCompass.root);
+  const bandMat = new THREE.MeshBasicMaterial({
+    color: 0xffe2a8,
+    transparent: true,
+    opacity: 0.34,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    polygonOffset: true,
+    polygonOffsetFactor: -4,
+    polygonOffsetUnits: -4,
+  });
+  const band = new THREE.Mesh(new THREE.RingGeometry(1, 1.2, 160), bandMat);
+  band.rotation.x = -Math.PI / 2;
+  band.renderOrder = 10;
+  band.visible = false;
+  band.userData.ignorePick = true;
+  const rimMat = createInlay();
+  const rimIn = new THREE.Mesh(new THREE.TorusGeometry(1, 0.018, 8, 96), rimMat);
+  const rimOut = new THREE.Mesh(new THREE.TorusGeometry(1.2, 0.018, 8, 96), rimMat);
+  rimIn.rotation.x = Math.PI / 2;
+  rimOut.rotation.x = Math.PI / 2;
+  rimIn.visible = false;
+  rimOut.visible = false;
+  rimIn.userData.ignorePick = true;
+  rimOut.userData.ignorePick = true;
+  luopan.add(band, rimIn, rimOut);
 
   const coreLight = new THREE.PointLight(0xc4a070, 0.55, 8, 2.2);
   coreLight.position.set(0, 0.4, 0);
@@ -341,75 +430,91 @@ export function createArtifact(): Artifact {
     mounts.push({ mount, ring, rest, spin: o.speed });
   });
 
-  let showTime = 0;
   let ringsPosed = false;
-  const SWAP_AT = 3.5;
-  const SWAP_DUR = 1.8;
-  const CLOSE_AT = 5.8;
-  const CLOSE_DUR = 2.2;
-  const FLIP_AT = 8.4;
-  const FLIP_DUR = 2.1;
+  let focused: LayerId | null = null;
+  let bandId: LayerId | null | undefined;
+  let foldShow = 0;
+  const lockAngle = { y: 0 };
+  const localHit = new THREE.Vector3();
 
-  const placeLuopan = (visible: boolean, intro: number, swapK = 0) => {
-    const enter = easeOutCubic(intro / 0.28);
-    luopan.visible = visible && enter > 0.02 && swapK < 0.98;
-    luopan.scale.setScalar(Math.max(0.001, enter * (1 - swapK * 0.92)));
-    luopan.position.y = -swapK * 1.8;
+  const showBand = (inner: number, outer: number, y: number) => {
+    band.geometry.dispose();
+    band.geometry = new THREE.RingGeometry(inner, outer, 160);
+    band.position.y = y;
+    band.visible = true;
+    rimIn.geometry.dispose();
+    rimOut.geometry.dispose();
+    rimIn.geometry = new THREE.TorusGeometry(inner, 0.018, 8, 80);
+    rimOut.geometry = new THREE.TorusGeometry(outer, 0.02, 8, 96);
+    rimIn.position.y = y;
+    rimOut.position.y = y;
+    rimIn.visible = true;
+    rimOut.visible = true;
   };
 
-  const placePetal = (visible: boolean, swapK = 1) => {
-    petalCompass.root.visible = visible && swapK > 0.02;
-    petalCompass.root.scale.setScalar(Math.max(0.001, visible ? swapK : 0.001));
-    petalCompass.root.position.y = THREE.MathUtils.lerp(-2.2, 0.05, swapK);
+  const hideBand = () => {
+    band.visible = false;
+    rimIn.visible = false;
+    rimOut.visible = false;
+  };
+
+  const layoutBand = () => {
+    if (focused === bandId) return;
+    bandId = focused;
+    luopan.add(band, rimIn, rimOut);
+    if (typeof focused === "number") {
+      const plate = plates[focused];
+      plate.add(band, rimIn, rimOut);
+      showBand(
+        plate.userData.inner as number,
+        plate.userData.outer as number,
+        (plate.userData.height as number) / 2 + 0.04,
+      );
+    } else if (focused === "core") {
+      showBand(0.08, 1.2, 0.3);
+    } else if (focused === "rings") {
+      showBand(6.28, 6.52, 0.08);
+    } else {
+      hideBand();
+    }
   };
 
   const update = (
-    _t: number,
+    t: number,
     dt: number,
     intro: number,
     paused: boolean,
     studio: Studio,
   ) => {
     const spinMul = studio.spin;
+    luopan.scale.setScalar(Math.max(0.001, easeOutCubic(intro / 0.28)));
+    foldShow = THREE.MathUtils.damp(foldShow, studio.fold, 5.5, dt);
+    bandMat.opacity = 0.28 + 0.12 * (0.5 + 0.5 * Math.sin(t * 3.2));
+    layoutBand();
 
-    if (studio.mode === "D" && intro >= 1 && !paused) showTime += dt;
-
-    if (studio.mode === "A") {
-      placeLuopan(true, intro, 0);
-      placePetal(false, 0);
-    } else if (studio.mode === "B" || studio.mode === "C") {
-      placeLuopan(false, 1, 1);
-      placePetal(true, 1);
-      petalCompass.setPetals(studio.close);
-      petalCompass.setFlip(studio.flip);
-    } else {
-      const swapK = easeInOutCubic((showTime - SWAP_AT) / SWAP_DUR);
-      const closeK = easeInOutCubic((showTime - CLOSE_AT) / CLOSE_DUR);
-      const flipK = easeInOutCubic((showTime - FLIP_AT) / FLIP_DUR);
-      placeLuopan(true, intro, swapK);
-      placePetal(true, swapK);
-      petalCompass.setPetals(closeK);
-      petalCompass.setFlip(flipK);
-    }
+    plates.forEach((plate, i) => {
+      const on = focused === i;
+      const faded = focused !== null && focused !== "rings" && !on;
+      plate.traverse((obj) => {
+        const mesh = obj as THREE.Mesh;
+        const mat = mesh.material as THREE.MeshPhysicalMaterial | undefined;
+        if (!mat || Array.isArray(mesh.material) || mat.opacity === undefined) return;
+        mat.transparent = faded;
+        mat.opacity = faded ? 0.4 : 1;
+      });
+    });
 
     if (!paused) {
-      if (studio.mode === "A") {
-        taiji.rotation.y += 0.46 * dt * spinMul;
-        plates.forEach((plate, i) => {
+      needle.rotation.y =
+        Math.sin(t * 1.35) * 0.028 + Math.sin(t * 0.41) * 0.016;
+      lockAngle.y += 0.22 * dt * spinMul;
+      plates.forEach((plate, i) => {
+        if (studio.counter) {
           plate.rotation.y += PLATES[i].speed * dt * spinMul;
-        });
-      } else if (studio.mode === "B" || studio.mode === "C") {
-        petalCompass.spin(dt, 0.28 * spinMul);
-      } else {
-        const swapK = easeInOutCubic((showTime - SWAP_AT) / SWAP_DUR);
-        const closeK = easeInOutCubic((showTime - CLOSE_AT) / CLOSE_DUR);
-        const spinFade = 1 - closeK * 0.85;
-        taiji.rotation.y += 0.46 * dt * (1 - swapK) * spinMul;
-        plates.forEach((plate, i) => {
-          plate.rotation.y += PLATES[i].speed * dt * (1 - swapK) * spinMul;
-        });
-        if (swapK > 0.2) petalCompass.spin(dt, 0.28 * spinFade * spinMul);
-      }
+        } else {
+          plate.rotation.y = lockAngle.y;
+        }
+      });
     }
 
     mounts.forEach((m, i) => {
@@ -424,22 +529,54 @@ export function createArtifact(): Artifact {
           THREE.MathUtils.lerp(0, m.rest.z, local),
         );
         m.mount.scale.setScalar(Math.max(0.001, local));
-      } else if (!ringsPosed) {
-        m.mount.rotation.copy(m.rest);
-        m.mount.scale.setScalar(1);
+      } else {
+        if (!ringsPosed) {
+          m.mount.scale.setScalar(1);
+        }
+        m.mount.rotation.set(
+          THREE.MathUtils.lerp(m.rest.x, Math.PI / 2, foldShow),
+          THREE.MathUtils.lerp(m.rest.y, 0, foldShow),
+          THREE.MathUtils.lerp(m.rest.z, 0, foldShow),
+        );
       }
       if (!paused && intro > delay && studio.rings) {
-        m.ring.rotateZ(m.spin * dt * spinMul);
+        m.ring.rotateZ(m.spin * dt * spinMul * (1 - foldShow * 0.7));
       }
     });
     if (intro >= 1) ringsPosed = true;
   };
 
+  const pick = (raycaster: THREE.Raycaster) => {
+    const hits = raycaster.intersectObject(root, true);
+    for (const hit of hits) {
+      if (hit.object.userData.ignorePick) continue;
+      localHit.copy(hit.point);
+      luopan.worldToLocal(localHit);
+      if (Math.abs(localHit.y) < 0.9) {
+        const byRadius = radiusToLayer(Math.hypot(localHit.x, localHit.z));
+        if (byRadius !== null) return byRadius;
+      }
+      const fromObj = layerFrom(hit.object);
+      if (fromObj !== null) return fromObj;
+    }
+    if (hits.length) return "rings";
+    return null;
+  };
+
+  const layerRadius = (id: LayerId) => {
+    if (id === "core") return 1.05;
+    if (id === "rings") return 7.2;
+    const spec = PLATES[id];
+    return (spec.inner + spec.outer) / 2;
+  };
+
   return {
     root,
     update,
-    resetShow: () => {
-      showTime = 0;
+    pick,
+    setFocus: (id) => {
+      focused = id;
     },
+    layerRadius,
   };
 }

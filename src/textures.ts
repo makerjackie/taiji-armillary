@@ -466,52 +466,6 @@ export function createTorusInscription(size = [2048, 256] as const) {
   return { map, bumpMap };
 }
 
-export function createPetalMaps(size = 768) {
-  const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext("2d")!;
-  fillBronze(ctx, size);
-
-  ctx.strokeStyle = "#e0c08a";
-  ctx.lineWidth = 8;
-  ctx.strokeRect(18, 18, size - 36, size - 36);
-  ctx.strokeStyle = "#5c3a22";
-  ctx.lineWidth = 3;
-  ctx.strokeRect(28, 28, size - 56, size - 56);
-  drawLeiwen(ctx, size, 40, 36);
-  drawLeiwen(ctx, size, size - 76, 36);
-
-  ctx.save();
-  ctx.translate(size / 2, size * 0.58);
-  ctx.fillStyle = "#2c160c";
-  drawTrigram(ctx, 0, 0, size * 0.28, HOU_TIAN[0].lines);
-  ctx.restore();
-
-  ctx.beginPath();
-  ctx.arc(size / 2, size * 0.28, size * 0.08, 0, Math.PI * 2);
-  ctx.strokeStyle = "#2c160c";
-  ctx.lineWidth = 6;
-  ctx.stroke();
-
-  const bump = document.createElement("canvas");
-  bump.width = size;
-  bump.height = size;
-  const bctx = bump.getContext("2d")!;
-  bctx.fillStyle = "#808080";
-  bctx.fillRect(0, 0, size, size);
-  bctx.strokeStyle = "#2a2a2a";
-  bctx.lineWidth = 8;
-  bctx.strokeRect(18, 18, size - 36, size - 36);
-
-  const map = new THREE.CanvasTexture(canvas);
-  const bumpMap = new THREE.CanvasTexture(bump);
-  map.colorSpace = THREE.SRGBColorSpace;
-  map.anisotropy = 8;
-  bumpMap.anisotropy = 8;
-  return { map, bumpMap };
-}
-
 export function createBronzeMaterial(
   maps?: {
     map?: THREE.Texture;

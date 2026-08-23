@@ -124,6 +124,75 @@ export const JIA_ZI = Array.from(
   (_, i) => STEMS[i % 10] + BRANCHES[i % 12],
 );
 
+export type LayerId = "core" | "rings" | number;
+
+export const LAYER_GUIDE: Array<{
+  id: LayerId;
+  name: string;
+  text: string;
+}> = [
+  {
+    id: "core",
+    name: "天池",
+    text: "盘心圆池。磁针指南北，红线是海底线，用来把整盘转正。太极只是底纹。",
+  },
+  {
+    id: 0,
+    name: "卦象",
+    text: "后天八卦的爻画，离南坎北，用来定八方。",
+  },
+  {
+    id: 1,
+    name: "卦名",
+    text: "八卦的名字，与内圈卦象一一对应。",
+  },
+  {
+    id: 2,
+    name: "洛书",
+    text: "九宫数理：一白居北、九紫居南，用来排星。",
+  },
+  {
+    id: 3,
+    name: "方位",
+    text: "东南西北与四隅，读盘时的地理方向。",
+  },
+  {
+    id: 4,
+    name: "二十四山",
+    text: "罗盘正盘。八干、四维、十二支，用来定坐向。",
+  },
+  {
+    id: 5,
+    name: "节气",
+    text: "二十四节气，对应太阳在黄道上的位置。",
+  },
+  {
+    id: 6,
+    name: "六十甲子",
+    text: "六十干支，用来排山家、择日、纳音。",
+  },
+  {
+    id: 7,
+    name: "二十八宿",
+    text: "周天星宿，对照天星与分野。",
+  },
+  {
+    id: 8,
+    name: "周天",
+    text: "一圈刻度，把圆周均匀分格，方便对度数。",
+  },
+  {
+    id: 9,
+    name: "六十四卦",
+    text: "周易六十四卦，有的盘用来配卦气。",
+  },
+  {
+    id: "rings",
+    name: "浑仪环",
+    text: "外圈活动环，模仿浑天仪的赤道与子午圈，是骨架不是风水盘层。",
+  },
+];
+
 export const RING_INSCRIPTIONS = [
   ...MOUNTAINS_24,
   ...MANSIONS_28,

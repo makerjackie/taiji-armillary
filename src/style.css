@@ -122,7 +122,7 @@ canvas {
 
 .studio-modes {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 6px;
   margin-bottom: 14px;
 }
@@ -198,7 +198,61 @@ canvas {
   opacity: 0.4;
 }
 
-#studio.is-show .studio-row:nth-of-type(2),
-#studio.is-show .studio-row:nth-of-type(3) {
-  opacity: 0.35;
+#lexicon {
+  position: fixed;
+  left: 22px;
+  top: 22px;
+  z-index: 4;
+  width: 268px;
+  max-height: calc(100vh - 140px);
+  overflow: auto;
+  padding: 16px 16px 12px;
+  border: 1px solid rgba(215, 196, 163, 0.18);
+  background: rgba(8, 6, 4, 0.72);
+  backdrop-filter: blur(12px);
+  color: #d7c4a3;
+}
+
+.lexicon-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.lexicon-list li {
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(215, 196, 163, 0.1);
+  cursor: pointer;
+}
+
+.lexicon-list li:last-child {
+  border-bottom: none;
+}
+
+.lexicon-list b {
+  display: block;
+  font-size: 13px;
+  letter-spacing: 0.22em;
+  font-weight: 700;
+}
+
+.lexicon-list span {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  line-height: 1.55;
+  letter-spacing: 0.04em;
+  opacity: 0.58;
+}
+
+.lexicon-list li.is-on {
+  border-color: rgba(215, 196, 163, 0.35);
+}
+
+.lexicon-list li.is-on b {
+  color: #ead7b4;
+}
+
+.lexicon-list li.is-on span {
+  opacity: 0.92;
 }
